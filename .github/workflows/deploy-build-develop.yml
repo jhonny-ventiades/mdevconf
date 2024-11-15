@@ -1,0 +1,48 @@
+name: Build APK
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+     
+      - name: install dependencies
+        run: npm i
+      - name: install angular
+        run: npm install -g @angular/cli@latest
+      
+      - name: install ionic
+        run: npm install -g @ionic/cli
+
+      - name: Build apk
+        run: ionic cap build android
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+      
+      - name: build with gradle as build
+        run: cd android && ./gradlew assembleDebug
+
+      
+      # This is a job for upload the apk like artefact
+      - name: upload a build apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidAPK.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: upload artifact to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+        with:
+          appId: '${{ secrets.appId }}'
+          serviceCredentialsFileContent: '${{ secrets.serviceCredentialsFileContent }}'
+          groups: testers
+          file: android/app/build/outputs/apk/debug/app-debug.apk
+          releaseNotes: '${{ inputs.commitName }}'
+  

@@ -1,0 +1,7 @@
+{
+  "name": "mDevConf",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
