@@ -1,0 +1,73 @@
+name: PR Code Review con GPT (OpenAI)
+
+# Este workflow se ejecuta automáticamente cuando:
+# - Se abre un nuevo PR hacia main
+# - Se actualiza un PR existente (nuevos commits)
+# - Se reabre un PR cerrado
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened      # PR nuevo
+      - synchronize # Nuevos commits en el PR
+      - reopened    # PR reabierto
+
+jobs:
+  gpt-review:
+    runs-on: ubuntu-latest
+    # Permisos necesarios para que GPT Review pueda:
+    # - Leer el código (contents: read)
+    # - Comentar en el PR (pull-requests: write)
+    # - Crear issues si es necesario (issues: write)
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 obtiene todo el historial de git
+          # Necesario para que GPT pueda analizar el contexto completo
+          fetch-depth: 0
+
+      - name: Mostrar información del PR
+        run: |
+          echo "📋 Información del Pull Request:"
+          echo "PR #${{ github.event.pull_request.number }}"
+          echo "Título: ${{ github.event.pull_request.title }}"
+          echo "Autor: ${{ github.event.pull_request.user.login }}"
+          echo "Branch: ${{ github.event.pull_request.head.ref }} -> ${{ github.event.pull_request.base.ref }}"
+          echo "Archivos cambiados: ${{ github.event.pull_request.changed_files }}"
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar gpt-review
+        run: |
+          pip install gpt-review
+
+      - name: GPT Code Review
+        run: |
+          gpt github review \
+            --access-token ${{ secrets.GITHUB_TOKEN }} \
+            --pull-request ${{ github.event.pull_request.number }} \
+            --repository ${{ github.repository }}
+        env:
+          # IMPORTANTE: Necesitas configurar este secret en GitHub
+          # Settings > Secrets and variables > Actions > New repository secret
+          # Nombre: OPENAI_API_KEY
+          # Valor: Tu API key de OpenAI (obtenerla en https://platform.openai.com/api-keys)
+          #
+          # gpt-review soporta múltiples métodos de autenticación:
+          # 1. OpenAI directo: OPENAI_API_KEY (lo que usamos aquí) ✅
+          # 2. Azure OpenAI: AZURE_OPENAI_API_URL + AZURE_OPENAI_API_KEY
+          # 3. Azure Key Vault: AZURE_KEY_VAULT_URL
+          #
+          # Ver documentación: https://github.com/marketplace/actions/gpt-review
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
