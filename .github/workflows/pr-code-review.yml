@@ -47,32 +47,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar gpt-review con dependencias actualizadas
+      - name: Instalar dependencias
         run: |
-          pip install --upgrade pip setuptools wheel
-          # Solucionar conflicto de dependencias
-          pip uninstall -y typing_extensions || true
-          pip install typing_extensions>=4.8.0
-          # Instalar gpt-review con todas sus dependencias
-          pip install --no-cache-dir gpt-review
+          pip install --upgrade pip
+          pip install openai requests
 
-      - name: GPT Code Review
+      - name: Ejecutar revisión de código con GPT-4
         run: |
-          gpt github review \
-            --access-token ${{ secrets.GITHUB_TOKEN }} \
-            --pull-request ${{ github.event.pull_request.number }} \
-            --repository ${{ github.repository }}
+          python .github/scripts/pr_review.py
         env:
           # IMPORTANTE: Necesitas configurar este secret en GitHub
           # Settings > Secrets and variables > Actions > New repository secret
           # Nombre: OPENAI_API_KEY
           # Valor: Tu API key de OpenAI (obtenerla en https://platform.openai.com/api-keys)
-          #
-          # gpt-review soporta múltiples métodos de autenticación:
-          # 1. OpenAI directo: OPENAI_API_KEY (lo que usamos aquí) ✅
-          # 2. Azure OpenAI: AZURE_OPENAI_API_URL + AZURE_OPENAI_API_KEY
-          # 3. Azure Key Vault: AZURE_KEY_VAULT_URL
-          #
-          # Ver documentación: https://github.com/marketplace/actions/gpt-review
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
 
