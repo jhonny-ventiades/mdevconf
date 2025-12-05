@@ -47,9 +47,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar gpt-review
+      - name: Instalar gpt-review con dependencias actualizadas
         run: |
-          pip install gpt-review
+          pip install --upgrade pip setuptools wheel
+          # Solucionar conflicto de dependencias
+          pip uninstall -y typing_extensions || true
+          pip install typing_extensions>=4.8.0
+          # Instalar gpt-review con todas sus dependencias
+          pip install --no-cache-dir gpt-review
 
       - name: GPT Code Review
         run: |
@@ -70,4 +75,3 @@ jobs:
           #
           # Ver documentación: https://github.com/marketplace/actions/gpt-review
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
