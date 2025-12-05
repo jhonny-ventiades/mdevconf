@@ -1,33 +1,9 @@
-name: Build APK
+name: Build APK (Manual)
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 jobs:
-  test-and-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-     
-      - name: install dependencies
-        run: npm i
-
-      - name: install angular
-        run: npm install -g @angular/cli@latest
-      
-      - name: install ionic
-        run: npm install -g @ionic/cli
-
-      - name: Run tests
-        run: npm test -- --watch=false --browsers=ChromeHeadless
-
-      - name: Build application
-        run: ionic build
-
   build-apk:
     runs-on: ubuntu-latest
-    needs: test-and-build
     steps:
       - name: checkout
         uses: actions/checkout@v4
@@ -76,8 +52,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       
       - name: Download APK artifact
         uses: actions/download-artifact@v4
@@ -85,20 +59,9 @@ jobs:
           name: mdevConf2025.apk
           path: ./
       
-      - name: Generate tag
-        id: tag
-        run: |
-          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          DATE=$(date +'%Y%m%d')
-          TAG="v${DATE}-${SHORT_SHA}"
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Generated tag: ${TAG}"
-      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: Release ${{ steps.tag.outputs.tag }}
           files: mdevConf2025.apk
           body: |
             ## Release Notes
@@ -110,3 +73,4 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
