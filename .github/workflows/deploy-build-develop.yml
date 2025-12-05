@@ -47,3 +47,31 @@ jobs:
           groups: testers
           file: android/app/build/outputs/apk/debug/app-debug.apk
           releaseNotes: 'Commit: ${{github.event.head_commit.message }}.'
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: build-apk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mdevConf2025.apk
+          path: ./
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: mdevConf2025.apk
+          body: |
+            ## Release Notes
+            
+            Commit: ${{ github.event.head_commit.message }}
+            
+            SHA: ${{ github.sha }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
