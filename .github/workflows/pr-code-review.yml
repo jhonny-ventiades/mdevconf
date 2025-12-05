@@ -4,64 +4,32 @@ name: PR Code Review con GPT (OpenAI)
 # - Se abre un nuevo PR hacia main
 # - Se actualiza un PR existente (nuevos commits)
 # - Se reabre un PR cerrado
+
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   pull_request:
-    branches:
-      - main
-    types:
-      - opened      # PR nuevo
-      - synchronize # Nuevos commits en el PR
-      - reopened    # PR reabierto
+  pull_request_review_comment:
+    types: [created]
+
+concurrency:
+  group:
+    ${{ github.repository }}-${{ github.event.number || github.head_ref ||
+    github.sha }}-${{ github.workflow }}-${{ github.event_name ==
+    'pull_request_review_comment' && 'pr_comment' || 'pr' }}
+  cancel-in-progress: ${{ github.event_name != 'pull_request_review_comment' }}
 
 jobs:
-  gpt-review:
+  review:
     runs-on: ubuntu-latest
-    # Permisos necesarios para que GPT Review pueda:
-    # - Leer el código (contents: read)
-    # - Comentar en el PR (pull-requests: write)
-    # - Crear issues si es necesario (issues: write)
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          # fetch-depth: 0 obtiene todo el historial de git
-          # Necesario para que GPT pueda analizar el contexto completo
-          fetch-depth: 0
-
-      - name: Mostrar información del PR
-        run: |
-          echo "📋 Información del Pull Request:"
-          echo "PR #${{ github.event.pull_request.number }}"
-          echo "Título: ${{ github.event.pull_request.title }}"
-          echo "Autor: ${{ github.event.pull_request.user.login }}"
-          echo "Branch: ${{ github.event.pull_request.head.ref }} -> ${{ github.event.pull_request.base.ref }}"
-          echo "Archivos cambiados: ${{ github.event.pull_request.changed_files }}"
-
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Instalar dependencias
-        run: |
-          pip install --upgrade pip
-          pip install openai requests
-
-      - name: Ejecutar revisión de código con GPT-4
-        run: |
-          python .github/scripts/pr_review.py
+      - uses: coderabbitai/ai-pr-reviewer@latest
         env:
-          # IMPORTANTE: Necesitas configurar este secret en GitHub
-          # Settings > Secrets and variables > Actions > New repository secret
-          # Nombre: OPENAI_API_KEY
-          # Valor: Tu API key de OpenAI (obtenerla en https://platform.openai.com/api-keys)
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
+        with:
+          debug: false
+          review_simple_changes: false
+          review_comment_lgtm: false
